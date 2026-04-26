@@ -1,7 +1,11 @@
 import cv2
 import os
 
-def extract_frames(video_path, output_folder, frame_skip=5):
+IMG_SIZE = 224
+FRAME_SKIP = 10
+MAX_FRAMES = 20
+
+def extract_frames(video_path, output_folder, prefix):
     cap = cv2.VideoCapture(video_path)
     count = 0
     saved = 0
@@ -13,21 +17,40 @@ def extract_frames(video_path, output_folder, frame_skip=5):
         if not ret:
             break
 
-        if count % frame_skip == 0:
-            frame = cv2.resize(frame, (224, 224))
-            cv2.imwrite(f"{output_folder}/frame_{saved}.jpg", frame)
+        if count % FRAME_SKIP == 0:
+            frame = cv2.resize(frame, (IMG_SIZE, IMG_SIZE))
+            filename = os.path.join(output_folder, f"{prefix}_{saved}.jpg")
+            cv2.imwrite(filename, frame)
             saved += 1
+
+        if saved >= MAX_FRAMES:
+            break
 
         count += 1
 
     cap.release()
-    print(f"Saved {saved} frames from {video_path}")
 
 
-# Process real videos
-for vid in os.listdir("./data/real_videos"):
-    extract_frames(f"./data/real_videos/{vid}", "./data/frames/real")
+def process_folder(input_folder, output_folder):
+    for vid in os.listdir(input_folder):
+        video_path = os.path.join(input_folder, vid)
+        video_name = os.path.splitext(vid)[0]
 
-# Process fake videos
-for vid in os.listdir("./data/fake_videos"):
-    extract_frames(f"./data/fake_videos/{vid}", "./data/frames/fake")
+        extract_frames(video_path, output_folder, video_name)
+        print("Done:", vid)
+
+
+splits = ["train", "val", "test"]
+labels = ["real_videos", "fake_videos"]
+
+for split in splits:
+    for label in labels:
+        input_dir = f"./data/split/{split}/{label}"
+
+        out_label = "real" if label == "real_videos" else "fake"
+
+        output_dir = f"./data/frames_split/{split}/{out_label}"
+
+        process_folder(input_dir, output_dir)
+
+print("Frame extraction completed.")

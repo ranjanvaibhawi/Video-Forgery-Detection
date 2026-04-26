@@ -1,73 +1,93 @@
-import os
-import numpy as np
-import cv2
-from sklearn.model_selection import train_test_split
+import tensorflow as tf
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import VGG16
 from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.layers import Dense, Flatten, Dropout
+from tensorflow.keras.callbacks import EarlyStopping
 
-# Paths
-REAL_PATH = "./data/frames/real"
-FAKE_PATH = "./data/frames/fake"
+IMG_SIZE = (224, 224)
+BATCH_SIZE = 8
 
-IMG_SIZE = 224
+TRAIN_DIR = "./data/frames_split/train"
+VAL_DIR   = "./data/frames_split/val"
+TEST_DIR  = "./data/frames_split/test"
 
-# Load images
-def load_data():
-    data = []
-    labels = []
+# Data generators
+train_gen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=10,
+    horizontal_flip=True,
+    zoom_range=0.1
+)
 
-    # Real images
-    for img in os.listdir(REAL_PATH):
-        path = os.path.join(REAL_PATH, img)
-        image = cv2.imread(path)
-        image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
-        data.append(image)
-        labels.append(0)
+val_gen = ImageDataGenerator(rescale=1./255)
+test_gen = ImageDataGenerator(rescale=1./255)
 
-    # Fake images
-    for img in os.listdir(FAKE_PATH):
-        path = os.path.join(FAKE_PATH, img)
-        image = cv2.imread(path)
-        image = cv2.resize(image, (IMG_SIZE, IMG_SIZE))
-        data.append(image)
-        labels.append(1)
+train_data = train_gen.flow_from_directory(
+    TRAIN_DIR,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='categorical'
+)
 
-    data = np.array(data) / 255.0
-    labels = to_categorical(labels, 2)
+val_data = val_gen.flow_from_directory(
+    VAL_DIR,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='categorical'
+)
 
-    return data, labels
+test_data = test_gen.flow_from_directory(
+    TEST_DIR,
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='categorical',
+    shuffle=False
+)
 
-# Load dataset
-X, y = load_data()
+# Base model
+base_model = VGG16(
+    weights='imagenet',
+    include_top=False,
+    input_shape=(224,224,3)
+)
 
-# Train-test split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-# Load VGG16
-base_model = VGG16(weights='imagenet', include_top=False, input_shape=(224,224,3))
-
-# Freeze layers
 for layer in base_model.layers:
     layer.trainable = False
 
-# Build model
-model = Sequential()
-model.add(base_model)
-model.add(Flatten())
-model.add(Dense(128, activation='relu'))
-model.add(Dense(2, activation='softmax'))
+# Model
+model = Sequential([
+    base_model,
+    Flatten(),
+    Dense(128, activation='relu'),
+    Dropout(0.5),
+    Dense(2, activation='softmax')
+])
 
-# Compile
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
+
+# Early stopping
+early_stop = EarlyStopping(
+    monitor='val_loss',
+    patience=2,
+    restore_best_weights=True
+)
 
 # Train
-model.fit(X_train, y_train, epochs=5, batch_size=8)
+history = model.fit(
+    train_data,
+    validation_data=val_data,
+    epochs=10,
+    callbacks=[early_stop]
+)
 
 # Evaluate
-loss, acc = model.evaluate(X_test, y_test)
-print("Accuracy:", acc)
+loss, acc = model.evaluate(test_data)
+print("Test Accuracy:", acc)
 
 # Save model
-model.save("./models/vgg16_forgery_model.keras")
+model.save("./models/vgg16_ffpp.keras")
