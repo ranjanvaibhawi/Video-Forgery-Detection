@@ -11,16 +11,25 @@ def compute_correlations(features):
             features[i+1]
         )[0,1]
 
-        correlations.append(corr)
+        if not np.isnan(corr):
+            correlations.append(corr)
 
     return correlations
 
 
 def detect_forgery(correlations):
 
-    avg_corr = np.mean(correlations)
-    print("Average Correlation:", avg_corr)
-    if avg_corr < 0.60:
+    correlations = np.array(correlations)
+
+    correlations = correlations[
+        ~np.isnan(correlations)
+    ]
+
+    median_corr = np.median(correlations)
+
+    print("Median Correlation:", median_corr)
+
+    if median_corr < 0.59:
         return "FAKE"
 
     return "REAL"

@@ -3,12 +3,13 @@ import numpy as np
 
 from src.feature_extraction import extract_features
 from src.kpca_analysis import apply_kpca
-from src.correlation_analysis import (
-    compute_correlations,
-    detect_forgery
-)
+from src.correlation_analysis import compute_correlations
 
-def analyze_video(video_path):
+
+
+# Compute median correlation for a video
+
+def get_video_correlation(video_path):
 
     cap = cv2.VideoCapture(video_path)
 
@@ -32,25 +33,43 @@ def analyze_video(video_path):
 
         count += 1
 
-        # Limit frames
-        if len(features) >= 30:
+
+        if len(features) >= 50:
             break
 
     cap.release()
 
+    if len(features) == 0:
+        return 0
+
     features = np.array(features)
 
-    # KPCA
     reduced_features = apply_kpca(features)
 
-    # Correlation analysis
     correlations = compute_correlations(reduced_features)
 
-    # Final decision
-    result = detect_forgery(correlations)
+    correlations = np.array(correlations)
 
-    avg_corr = np.mean(correlations)
+    correlations = correlations[
+        ~np.isnan(correlations)
+    ]
+    median_corr = np.median(correlations)
 
-    confidence = round(abs(avg_corr) * 100, 2)
+    return median_corr
+
+
+# Final prediction using calibrated threshold
+def analyze_video(video_path, threshold=0.6529912604549386):
+
+    median_corr = get_video_correlation(video_path)
+
+    print("Median Correlation:", median_corr)
+
+    if median_corr < threshold:
+        result = "FAKE"
+    else:
+        result = "REAL"
+
+    confidence = round(abs(median_corr) * 100, 2)
 
     return result, confidence
