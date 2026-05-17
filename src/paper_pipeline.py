@@ -56,7 +56,59 @@ def get_video_correlation(video_path):
     median_corr = np.median(correlations)
 
     return median_corr
+def get_correlation_features(video_path):
 
+    cap = cv2.VideoCapture(video_path)
+
+    features = []
+
+    count = 0
+
+    while True:
+
+        ret, frame = cap.read()
+
+        if not ret:
+            break
+
+        if count % 20 == 0:
+
+            feature_vector = extract_features(frame)
+
+            features.append(feature_vector)
+
+        count += 1
+
+        if len(features) >= 25:
+            break
+
+    cap.release()
+
+    if len(features) == 0:
+        return [0,0,0,0,0]
+
+    features = np.array(features)
+
+    reduced_features = apply_kpca(features)
+
+    correlations = compute_correlations(reduced_features)
+
+    correlations = np.array(correlations)
+
+    correlations = correlations[
+        ~np.isnan(correlations)
+    ]
+
+    if len(correlations) == 0:
+        return [0,0,0,0,0]
+
+    return [
+        np.mean(correlations),
+        np.median(correlations),
+        np.std(correlations),
+        np.min(correlations),
+        np.max(correlations)
+    ]
 
 # Final prediction using calibrated threshold
 def analyze_video(video_path, threshold=0.6529912604549386):
