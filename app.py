@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request
+from flask import send_from_directory
 import os
 import cv2
 import numpy as np
@@ -56,6 +57,9 @@ def predict_video(video_path):
 def home():
     return render_template("index.html")
 
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -70,7 +74,8 @@ def predict():
         "result.html",
         result=result,
         confidence=confidence,
-        filename=file.filename
+        filename=file.filename,
+        video_path=filepath
     )
 
 

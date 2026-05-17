@@ -33,7 +33,7 @@ def analyze_video(video_path):
         count += 1
 
         # Limit frames
-        if len(features) >= 20:
+        if len(features) >= 30:
             break
 
     cap.release()

@@ -4,7 +4,7 @@ import numpy as np
 def apply_kpca(features):
 
     kpca = KernelPCA(
-        n_components=50,
+        n_components=25,
         kernel='rbf'
     )
 

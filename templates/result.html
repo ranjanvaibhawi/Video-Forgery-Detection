@@ -1,17 +1,34 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Result</title>
+    <title>Prediction Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
+
+<div class="container">
+
     <h1>Prediction Result</h1>
 
-    <p>File: {{ filename }}</p>
+    <p><strong>Uploaded File:</strong> {{ filename }}</p>
 
-    <h2>{{ result }}</h2>
+    {% if result == "REAL" %}
+        <h2 class="real">REAL</h2>
+    {% else %}
+        <h2 class="fake">FAKE</h2>
+    {% endif %}
 
-    <p>Confidence: {{ confidence }}%</p>
+    <p class="confidence">
+        Confidence Score: {{ confidence }}%
+    </p>
+    <video width="600" controls>
+    <source src="{{ url_for('uploaded_file', filename=filename) }}" type="video/mp4">
+    </video>
 
-    <a href="/">Try Another Video</a>
+    <a href="/" class="back-btn">Analyze Another Video</a>
+
+</div>
+
 </body>
 </html>

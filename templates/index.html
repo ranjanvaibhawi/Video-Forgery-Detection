@@ -1,14 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Deepfake Detector</title>
+    <title>Deepfake Detection Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
+
 <body>
-    <h1>Upload Video for Detection</h1>
+
+<div class="container">
+
+    <h1>AI-Powered Deepfake Detection</h1>
+
+    <p class="subtitle">
+        Upload a video to analyze whether it is real or manipulated.
+    </p>
 
     <form action="/predict" method="post" enctype="multipart/form-data">
+
         <input type="file" name="video" required>
-        <button type="submit">Predict</button>
+
+        <button type="submit">Analyze Video</button>
+
     </form>
+
+</div>
+
 </body>
 </html>
